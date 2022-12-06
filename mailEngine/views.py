@@ -74,13 +74,17 @@ def create_mail_object(request):
     }
 
     created_mail_object: MailObject = mail_object_model.create_mail_object(mail_object_details)
-    created_mail_head: MailHead = mail_head_model.create_mail_head(mail_object_details, created_mail_object)
+    created_mail_head: MailHead = mail_head_model.create_mail_head(
+        mail_object_details,
+        created_mail_object,
+        account_host_login_address
+    )
 
     draft_file_url = f'media/{created_mail_object.id}/drafts/'
     draft_init_content = 'Dhana LTD'
 
     write_to_file(draft_file_url, 'draft.txt', draft_init_content)
-    mail_object_details['draftBodyUrl'] = draft_file_url
+    mail_object_details['draftBodyUrl'] = draft_file_url + 'draft.txt'
     mail_object_details['bodyUrl'] = ''
 
     mail_body_model = MailBodyModel()
@@ -91,7 +95,8 @@ def create_mail_object(request):
         'mail_object_id': created_mail_object.id,
         'sender': created_mail_head.sender,
         'reply_to': created_mail_head.reply_to,
-        'mailBodyId': created_mail_body.id
+        'mailBodyId': created_mail_body.id,
+        'mailHeadTime': created_mail_head.mail_date
     }
 
     return json_resp(mail_object_response)
@@ -102,34 +107,37 @@ def get_system_flags(request):
     mails_flags = MailFlagsModel()
 
     label_account_id = request.data['accountId']
-
-    account_host_login_address = MailAccount.objects.get(
-        account_host_login_address=label_account_id)
+    try:
+        account_host_login_address = MailAccount.objects.get(
+            account_host_login_address=label_account_id
+        )
+    except MailAccount.DoesNotExist:
+        account_host_login_address = None
 
     mail_flags_to_send = []
 
     mail_flags = mails_flags.get_mail_flags()
+    if account_host_login_address is not None:
+        for mail_flag in mail_flags:
+            try:
+                Label.objects.get(
+                    label_account__account_host_login_address=account_host_login_address.account_host_login_address,
+                    label_flag__id=mail_flag.id
+                )
+            except Label.DoesNotExist:
+                new_label = Label()
+                new_label.label_account = account_host_login_address
+                new_label.label_flag = mail_flag
+                new_label.label_name = account_host_login_address.account_name + "_" + mail_flag.name
+                new_label.save()
 
-    for mail_flag in mail_flags:
-        try:
-            Label.objects.get(
-                label_account__account_host_login_address=account_host_login_address.account_host_login_address,
-                label_flag__id=mail_flag.id
-            )
-        except Label.DoesNotExist:
-            new_label = Label()
-            new_label.label_account = account_host_login_address
-            new_label.label_flag = mail_flag
-            new_label.label_name = account_host_login_address.account_name + "_" + mail_flag.name
-            new_label.save()
+            mail_flag_to_send = {
+                'flagId': mail_flag.id,
+                'flagName': mail_flag.name,
+                'flagImapName': mail_flag.flag_imap_label
+            }
 
-        mail_flag_to_send = {
-            'flagId': mail_flag.id,
-            'flagName': mail_flag.name,
-            'flagImapName': mail_flag.flag_imap_label
-        }
-
-        mail_flags_to_send.append(mail_flag_to_send)
+            mail_flags_to_send.append(mail_flag_to_send)
 
     return json_resp(mail_flags_to_send)
 
@@ -165,14 +173,18 @@ def get_mail_heads(request):
                 except ValueError:
                     try:
                         mail_date = datetime.datetime.strptime(fetched_head['Date'], '%a, %d %b %Y %H:%M:%S %Z')
-                    except:
-                        mail_date = timezone.now()
+                    except ValueError:
+                        try:
+                            mail_date = datetime.datetime.strptime(fetched_head['Date'], '%a, %d %b %Y %H:%M:%S %z %Z')
+                        except ValueError:
+                            mail_date = timezone.now()
                 except TypeError:
                     mail_date = timezone.now()
 
                 fetched_head_mail_object = MailObject()
                 fetched_head_mail_object.mail_box = system_flag.mail_box
                 fetched_head_mail_object.mail_flag = system_flag
+                fetched_head_mail_object.user_account = request.data['objectMailAccount']
                 fetched_head_mail_object.save()
                 fetched_mail_head: MailHead = MailHead()
                 fetched_mail_head.sender = fetched_head['From']
@@ -187,7 +199,7 @@ def get_mail_heads(request):
                 fetched_mail_head.mail_account = system_account_user
                 fetched_mail_head.save()
         except SystemExit:
-            fetched_heads = []
+            pass
 
     system_mail_heads = MailHead.objects.filter(
         mail_object__mail_flag__id=system_flag.id,
@@ -204,6 +216,7 @@ def get_mail_heads(request):
             'date': system_mail_head.mail_date,
             'mailHeadId': system_mail_head.id
         }
+        print(mail_head_to_send)
         mail_heads_to_send.append(mail_head_to_send)
 
     return json_resp(mail_heads_to_send)
@@ -399,7 +412,6 @@ def get_mail_body(request):
     if mail_body_object.mail_flag.name == 'Unread':
         mail_body_object.mail_flag = read_flag
         mail_body_object.save()
-        print('Done')
     return json_resp(get_mail_body_resp)
 
 
@@ -421,8 +433,11 @@ def change_mail_flag(request):
 @api_view(['POST'])
 def clear_mail_flag(request):
     mail_flag_to_change_to_id = request.data['mailFlagId']
+    log_in_account = request.data['logIgn']
 
-    mail_objects = MailObject.objects.filter(mail_flag__id=mail_flag_to_change_to_id)
+    mail_objects = MailObject.objects.filter(
+        mail_flag__id=mail_flag_to_change_to_id
+    )
 
     for mail_object in mail_objects:
         mail_object.delete()

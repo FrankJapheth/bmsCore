@@ -9,6 +9,7 @@ class Member(models.Model):
 
     member_user = models.ForeignKey(to=User, on_delete=models.CASCADE)
     member_department = models.ForeignKey(to=Department, on_delete=models.CASCADE)
+    status = models.CharField(default='Pending', max_length=100)
 
     member_date_joined = models.DateTimeField(auto_now=True)
 

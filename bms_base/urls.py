@@ -10,5 +10,7 @@ urlpatterns = [
     path('editMember', views.add_member, name='editMember'),
     path('getDepartmentDetails', views.get_department_details, name='getDepartmentDetails'),
     path('changeOrgOwner', views.change_org_owner, name='changeOrgOwner'),
-    path('searchMembers', views.get_system_user, name='searchMembers')
+    path('searchMembers', views.get_system_user, name='searchMembers'),
+    path('searchOrgs', views.search_organizations, name='searchOrgs'),
+    path('changeMemberStatus', views.change_user_status, name='changeMemberStatus')
 ]

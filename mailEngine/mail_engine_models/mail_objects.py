@@ -10,3 +10,4 @@ class MailObject(models.Model):
     mail_box = models.ForeignKey(to=MailBox, on_delete=models.CASCADE, null=True)
     mail_label = models.ForeignKey(to=Label, on_delete=models.CASCADE, null=True)
     mail_flag = models.ForeignKey(to=Flag, on_delete=models.CASCADE, null=True)
+    user_account = models.ForeignKey(to=MailAccount,on_delete=models.CASCADE, null=True)

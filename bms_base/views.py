@@ -197,7 +197,8 @@ def authenticate_user(request):
                         department_member_details = {
                             'memberId': department_member.member_id,
                             'memberName': department_member.member_user.first_name + ' ' +
-                                          department_member.member_user.last_name
+                                          department_member.member_user.last_name,
+                            'memberStatus': department_member.status
                         }
                         department_members_to_send.append(department_member_details)
 
@@ -363,3 +364,43 @@ def get_system_user(request):
         searched_users_to_send.append(searched_member)
 
     return json_resp(searched_users_to_send)
+
+
+@api_view(['POST'])
+def search_organizations(request):
+    search_term = request.data['searchTerm']
+
+    organization_departments = Department.objects.filter(
+        department_organization__organization_name__icontains=search_term,
+        department_recruting=True
+    ) | Department.objects.filter(
+        department_name__icontains=search_term,
+        department_recruting=True
+    )
+
+    org_departments_to_send = []
+
+    for organization_department in organization_departments:
+        org_dept_to_send = {
+            'departmentName': organization_department.department_name,
+            'departmentId': organization_department.department_id,
+            'orgDomain': organization_department.department_organization.organization_domain,
+            'orgName': organization_department.department_organization.organization_name
+        }
+
+        org_departments_to_send.append(org_dept_to_send)
+
+    return json_resp(org_departments_to_send)
+
+
+@api_view(['POST'])
+def change_user_status(request):
+    user_member_id = request.data['memberId']
+    member_status = request.data['status']
+    user_member = Member.objects.get(member_id=user_member_id)
+
+    user_member.status = member_status
+
+    user_member.save()
+
+    return json_resp(True)

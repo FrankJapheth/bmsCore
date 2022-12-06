@@ -54,7 +54,7 @@ class MemberModel:
         members: list = []
 
         if member_details['userId'] != '':
-            members = Member.objects.filter(member_user__username=member_details['userId'])
+            members = Member.objects.filter(member_user__username=member_details['userId'],status='Activate')
 
         return members
 

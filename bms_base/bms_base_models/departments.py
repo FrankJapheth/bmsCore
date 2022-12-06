@@ -8,7 +8,7 @@ class Department(models.Model):
     department_name = models.CharField(max_length=150, null=False)
     department_organization = models.ForeignKey(to=Organization, on_delete=models.CASCADE)
     department_mail_account = models.CharField(max_length=150, null=True)
-
+    department_recruting = models.BooleanField(default=False)
     department_date_created = models.DateTimeField(auto_now=True)
 
     def __str__(self):

@@ -1,3 +1,6 @@
+
+from django.utils import timezone
+
 from .mail_engine_models.mail_accounts import MailAccount
 from .mail_engine_models.label import Label
 from .mail_engine_models.flags import Flag
@@ -45,12 +48,14 @@ class MailAttachmentModel:
 
 class MailHeadModel:
 
-    def create_mail_head(self, mail_head_details: dict, mail_object: MailObject) -> MailHead:
+    def create_mail_head(self, mail_head_details: dict, mail_object: MailObject, mail_account: MailAccount) -> MailHead:
         created_mail_head: MailHead = MailHead()
 
         created_mail_head.sender = mail_head_details['objectMailAccount']
         created_mail_head.reply_to = mail_head_details['objectMailAccount']
+        created_mail_head.mail_date = timezone.now()
         created_mail_head.mail_object = mail_object
+        created_mail_head.mail_account = mail_account
         created_mail_head.save()
 
         return created_mail_head

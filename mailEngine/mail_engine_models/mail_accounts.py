@@ -1,4 +1,7 @@
 from django.db import models
+from bms_base.bms_base_models.members import Member
+from bms_base.bms_base_models.departments import Department
+from bms_base.bms_base_models.organizations import Organization
 
 
 class MailAccount(models.Model):
