@@ -184,7 +184,7 @@ def get_mail_heads(request):
                 fetched_head_mail_object = MailObject()
                 fetched_head_mail_object.mail_box = system_flag.mail_box
                 fetched_head_mail_object.mail_flag = system_flag
-                fetched_head_mail_object.user_account = request.data['objectMailAccount']
+                fetched_head_mail_object.user_account = system_account_user
                 fetched_head_mail_object.save()
                 fetched_mail_head: MailHead = MailHead()
                 fetched_mail_head.sender = fetched_head['From']
